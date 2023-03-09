@@ -1,1 +1,0 @@
-# AICS-homework
