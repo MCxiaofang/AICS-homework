@@ -16,7 +16,7 @@ def evaluate(mlp):
         pred_labels = np.argmax(prob, axis=1)
         pred_results[idx * mlp.batch_size : (idx + 1) * mlp.batch_size] = pred_labels
 
-    # deal with the last sets which less than batch_size
+    # Gradient descent on the remaining data sets smaller than batch_size
     if mlp.test_data.shape[0] % mlp.batch_size >0: 
         last_batch = mlp.test_data.shape[0] / mlp.batch_size * mlp.batch_size
         batch_images = mlp.test_data[-last_batch:, : -1]

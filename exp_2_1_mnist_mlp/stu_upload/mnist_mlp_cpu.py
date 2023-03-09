@@ -26,7 +26,6 @@ class MNIST_MLP(object):
         self.lr = lr
         self.max_epoch = max_epoch
         self.print_iter = print_iter
-        self.loss = {}
 
     def load_mnist(self, file_dir, is_images = 'True'):
         # Read binary data
@@ -123,7 +122,6 @@ class MNIST_MLP(object):
         print('Start training...')
         for idx_epoch in range(self.max_epoch):
             self.shuffle_data()
-            self.loss[idx_epoch] = 0
             for idx_batch in range(max_batch):
                 batch_images = self.train_data[idx_batch*self.batch_size:(idx_batch+1)*self.batch_size, :-1]
                 batch_labels = self.train_data[idx_batch*self.batch_size:(idx_batch+1)*self.batch_size, -1]
@@ -131,10 +129,8 @@ class MNIST_MLP(object):
                 loss = self.softmax.get_loss(batch_labels)
                 self.backward()
                 self.update(self.lr * 0.5 * (2 - idx_epoch / self.max_epoch))
-                self.loss[idx_epoch] += loss
                 if idx_batch % self.print_iter == 0:
                     print('Epoch %d, iter %d, loss: %.6f' % (idx_epoch, idx_batch, loss))
-        print(self.loss)
 
     def evaluate(self):
         pred_results = np.zeros([self.test_data.shape[0]])
@@ -150,7 +146,7 @@ class MNIST_MLP(object):
         print('Accuracy in test set: %f' % accuracy)
 
 def build_mnist_mlp(param_dir='weight.npy'):
-    h1, h2, e = 128, 64, 20
+    h1, h2, e = 1024, 512, 10
     mlp = MNIST_MLP(hidden1=h1, hidden2=h2, max_epoch=e)
     mlp.load_data()
     mlp.build_model()
