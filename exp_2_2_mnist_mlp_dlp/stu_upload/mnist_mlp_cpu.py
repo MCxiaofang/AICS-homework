@@ -128,7 +128,7 @@ class MNIST_MLP(object):
                 prob = self.forward(batch_images)
                 loss = self.softmax.get_loss(batch_labels)
                 self.backward()
-                self.update(self.lr)
+                self.update(self.lr * 0.5 * (2 - idx_epoch / self.max_epoch))
                 if idx_batch % self.print_iter == 0:
                     print('Epoch %d, iter %d, loss: %.6f' % (idx_epoch, idx_batch, loss))
 
