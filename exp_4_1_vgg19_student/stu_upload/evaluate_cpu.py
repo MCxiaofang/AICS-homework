@@ -46,7 +46,7 @@ def net(data_path, input_image):
         elif name[:4] == 'relu':
             # TODO: 执行 ReLU 计算，计算结果存入 current
             current = tf.nn.relu(current)
-        elif name[:4] == 'pool':
+        elif name[:4] == 'pool': 
             # TODO: 执行 pool 计算，计算结果存入 current
             current = _pool_layer(current)
         elif name == 'softmax':
@@ -73,12 +73,15 @@ def net(data_path, input_image):
     return net
 
 def _conv_layer(input, weights, bias):
+    print("bias shape: ", bias.shape)
     # TODO: 定义卷积层的操作步骤，input 为输入张量，weights 为权重参数，bias 为偏置参数，返回计算的结果
-    return tf.nn.bias_add(tf.nn.conv2d(input, weights, strides=1, padding="SAME"), bias.flatten())
+    conv = tf.nn.conv2d(input, tf.constant(weights), strides=1,
+            padding='SAME')
+    return tf.nn.bias_add(conv, bias.flatten())
 
 def _pool_layer(input):
     # TODO: 定义最大池化的操作步骤，input 为输入张量，返回池化操作后的计算结果
-    return tf.nn.max_pool(input, ksize=2, strides=2, padding="VALID")
+    return tf.nn.max_pool(input, ksize=2, strides=2, padding='SAME')
 
 def preprocess(image,mean):
     return image - mean
