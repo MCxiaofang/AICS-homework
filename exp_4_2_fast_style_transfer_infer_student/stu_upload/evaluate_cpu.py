@@ -24,8 +24,10 @@ def ffwd(data_in, paths_out, model, device_t='', batch_size=1):
     is_paths = type(data_in[0]) == str
     # TODO：如果 data_in 是保存输入图像的文件路径，即 is_paths 为 True，则读入第一张图像，由于 pb 模型的输入维度为 1 × 256 × 256 × 3, 因此需将输入图像的形状调整为 256 × 256，并传递给 img_shape；
     # 如果 data_in 是已经读入图像并转化成数组形式的数据，即 is_paths 为 False，则直接获取图像的 shape 特征 img_shape
-    ______________________
-    ______________________
+    if is_paths:
+        img_shape = [256, 256, 3]
+    else:
+        img_shape = data_in[0].shape
 
     g = tf.Graph()
     config = tf.ConfigProto(allow_soft_placement=True,
@@ -43,33 +45,38 @@ def ffwd(data_in, paths_out, model, device_t='', batch_size=1):
             output_tensor = sess.graph.get_tensor_by_name('add_37:0')
             batch_size = 1
             # TODO：读入的输入图像的数据格式为 HWC，还需要将其转换成 NHWC
-            batch_shape = ______________________  
+            batch_shape = [batch_size] + img_shape
+            # 在这里进行了批量处理，可以同时风格迁移batch_size张图片
+            # 如果共有len(paths_out)张图片需要迁移，则共需要len(paths_out)/batch_size循环
             num_iters = int(len(paths_out)/batch_size)
             for i in range(num_iters):
                 pos = i * batch_size
                 curr_batch_out = paths_out[pos:pos+batch_size]
                 # TODO：如果 data_in 是保存输入图像的文件路径，则依次将该批次中输入图像文件路径下的 batch_size 张图像读入数组 X；
                 # 如果 data_in 是已经读入图像并转化成数组形式的数据，则将该数组传递给 X
-                ______________________
-                ______________________
+                X = [get_img(path, img_shape) for path in data_in[pos:pos+batch_size]] if is_paths else data_in[pos:pos+batch_size]
               
                 start = time.time()
                 # TODO: 使用 sess.run 来计算 output_tensor
-                _preds = ______________________
+                _preds = sess.run(output_tensor, feed_dict={input_tensor:X})
                 end = time.time()
                 for j, path_out in enumerate(curr_batch_out):
                 #TODO：在该批次下调用 utils.py 中的 save_img() 函数对所有风格迁移后的图片进行存储
-                    ______________________
+                    save_img(path_out, _preds[j])
                 delta_time = end - start	
                 print("Inference (CPU) processing time: %s" % delta_time)  
 
 def ffwd_to_img(in_path, out_path, model, device='/cpu:0'):
+    # ffwd输入要求是列表，批量进行图片风格迁移
+    # ffwd_to_img()函数是风格迁移单张图片，为了调用ffwd，在这里进行输入转换
     paths_in, paths_out = [in_path], [out_path]
     ffwd(paths_in, paths_out, model, batch_size=1, device_t=device)
 
 def ffwd_different_dimensions(in_path, out_path, model, 
             device_t=DEVICE, batch_size=4):
-    in_path_of_shape = defaultdict(list)
+    # 本质上和ffew没区别，只是将图片以shape为key进行分类，然后分别进行风格迁移
+    # defaultdict(list) :本质上还是声明了一个dict，其中value全部为list，并且如果dict[key]不存在时默认创建dict[key]=list
+    in_path_of_shape = defaultdict(list)        
     out_path_of_shape = defaultdict(list)
     for i in range(len(in_path)):
         in_image = in_path[i]
@@ -124,13 +131,16 @@ def main():
     opts = parser.parse_args()
     check_opts(opts)
 
+    # 对单个图片进行图像风格迁移
     if not os.path.isdir(opts.in_path):
+        # 如果输出路径是文件夹，则将输出图片路径设置为输出文件夹路径加上输入图片的文件名
         if os.path.exists(opts.out_path) and os.path.isdir(opts.out_path):
             out_path = os.path.join(opts.out_path,os.path.basename(opts.in_path))
         else:
             out_path = opts.out_path
         # 执行风格迁移预测，输入图像为 opts.in_path，转换后的图像为 out_path，模型文件路径为 opts.model    
         ffwd_to_img(opts.in_path, out_path, opts.model, device=opts.device)
+    # 对整个文件夹图片进行图像风格迁移
     else:
         files = list_files(opts.in_path)
         full_in = [os.path.join(opts.in_path,x) for x in files]

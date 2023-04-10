@@ -1,3 +1,4 @@
+# coding:utf-8
 import scipy.misc, numpy as np, os, sys
 
 def save_img(out_path, img):
@@ -14,8 +15,8 @@ def scale_img(style_path, style_scale):
 
 def get_img(src, img_size=False):
     #TODO: 使用 scipy.misc 模块读入输入图像 src 并转化成’RGB’ 模式，返回 ndarray 类型数组 img
-    img = ______________________
-    ______________________
+    img = scipy.misc.imread(src, mode="RGB")
+    img = scipy.misc.imresize(img, img_size) if img_size else img
     return img
 
 def exists(p, msg):
