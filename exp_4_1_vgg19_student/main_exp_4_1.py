@@ -1,3 +1,4 @@
+# coding:utf-8
 import numpy as np
 import struct
 import os
@@ -37,7 +38,7 @@ def test_cpu():
         img_placeholder = tf.placeholder(tf.float32, shape=(1,224,224,3),
                                          name='img_placeholder')
         nets = net(VGG_PATH, img_placeholder)
-
+        print('Finished building Network.')
         for i in range(10):
             start = time.time()
             preds = sess.run(nets, feed_dict={img_placeholder:input_image})
