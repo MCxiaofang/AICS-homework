@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright (c) 2015-2016 Anish Athalye. Released under GPLv3.
 
 import tensorflow as tf
@@ -34,13 +35,15 @@ def net(data_path, input_image):
         kind = name[:4]
         if kind == 'conv':
             # TODO：如果当前层为卷积层，则进行卷积计算，计算结果为 current
-            current = ___________________
+            kernels, bias = weights[i][0][0][0][0]
+            kernels = kernels.transpose(1, 0, 2, 3)
+            current = _conv_layer(current, kernels, bias)
         elif kind == 'relu':
             # TODO：如果当前层为 ReLU 层，则进行 ReLU 计算，计算结果为 current
-            current = ___________________
+            current = tf.nn.relu(current)
         elif kind == 'pool':
             # TODO：如果当前层为池化层，则进行最大池化计算，计算结果为 current
-            current = ___________________
+            current = _pool_layer(current)
         net[name] = current
 
     assert len(net) == len(layers)
@@ -50,7 +53,7 @@ def net(data_path, input_image):
 def _conv_layer(input, weights, bias):
     conv = tf.nn.conv2d(input, tf.constant(weights), strides=(1, 1, 1, 1),
             padding='SAME')
-    return tf.nn.bias_add(conv, bias)
+    return tf.nn.bias_add(conv, bias.flatten())
 
 
 def _pool_layer(input):

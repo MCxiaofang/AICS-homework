@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import print_function
 import sys
 sys.path.insert(0, 'src')
@@ -15,6 +16,7 @@ import numpy
 BATCH_SIZE = 4
 DEVICE = '/cpu:0'
 
+# 和exp4_2不同，model变成了checkpoint_dir，用于测试能否恢复检查点并正确生成图片
 def ffwd(data_in, paths_out, checkpoint_dir, device_t='/gpu:0', batch_size=4):
     assert len(paths_out) > 0
     is_paths = type(data_in[0]) == str

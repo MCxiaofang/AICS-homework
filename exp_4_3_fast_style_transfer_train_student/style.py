@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import print_function
 import sys, os, pdb
 sys.path.insert(0, 'src')
@@ -125,7 +126,10 @@ def main():
     check_opts(options)
 
     # TODO：获取风格图像 style_target 以及内容图像数组 content_targets
-    style_target = ___________________
+    # style_target为一张图片的数据，content_targets为图片路径
+    # 如果使用slow模式，则必须提供test参数
+    # test参数为一张测试图片的路径
+    style_target = get_img(options.style)
     if not options.slow:
         content_targets = _get_files(options.train_path)
     elif options.test:
@@ -141,6 +145,10 @@ def main():
         "type":options.type,
         "save":options.save
     }
+    # slow模式：每次训练一张图片
+    # 因为普通模式下共1000张训练图片，所以slow模式下epochs为1000
+    # data/train2014_small: len=1000
+    # data/train2014_test: len=40,40张中选一张（test)
     if options.slow:
         if options.epochs < 10:
             kwargs['epochs'] = 1000
@@ -155,6 +163,13 @@ def main():
         options.tv_weight,
         options.vgg_path
     ]
+
+    import json
+    print("training graph length:", len(content_targets))
+    print("content graph name:", options.train_path)
+    print("style graph name:", options.style)
+    json.dumps(kwargs, indent=4, separators=(',', ':'))
+        
     
     for preds, losses, i, epoch in optimize(*args, **kwargs):
         style_loss, content_loss, tv_loss, loss = losses
@@ -165,13 +180,15 @@ def main():
             assert options.test_dir != False
             preds_path = '%s/%s_%s.png' % (options.test_dir,epoch,i)
             if not options.slow:
-                ckpt_dir = os.path.dirname(options.checkpoint_dir)
+                ckpt_dir = os.path.dirname(options.checkpoint_dir)          # ???
                 evaluate.ffwd_to_img(options.test,preds_path,
                                      options.checkpoint_dir)
             else:
-                save_img(preds_path, img)
-    ckpt_dir = options.checkpoint_dir
+                save_img(preds_path, preds)
+    ckpt_dir = options.checkpoint_dir       # ???
     print("Training complete.")
 
 if __name__ == '__main__':
+    import os
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
     main()

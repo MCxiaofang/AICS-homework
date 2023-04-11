@@ -1,3 +1,4 @@
+# coding=utf-8
 import tensorflow as tf, pdb
 
 WEIGHTS_INIT_STDEV = .1
@@ -5,12 +6,20 @@ WEIGHTS_INIT_STDEV = .1
 def net(image, type=0):
     # 该函数构建图像转换网络，image 为步骤 1 中读入的图像 ndarray 阵列，返回最后一层的输出结果
     # TODO：构建图像转换网络，每一层的输出作为下一层的输入
-    conv1 = ___________________
-    conv2 = ___________________
-    ___________________
+    conv1 = _conv_layer(image, 32, 9, 1, type=type)
+    conv2 = _conv_layer(conv1, 64, 3, 2, type=type)
+    conv3 = _conv_layer(conv2, 128, 3, 2, type=type)
+    resi1 = _residual_block(conv3, 3, type=type)
+    resi2 = _residual_block(resi1, 3, type=type)
+    resi3 = _residual_block(resi2, 3, type=type)
+    resi4 = _residual_block(resi3, 3, type=type)
+    resi5 = _residual_block(resi4, 3, type=type)
+    convt1 = _conv_tranpose_layer(resi5, 64, 3, 2, type=type)
+    convt2 = _conv_tranpose_layer(convt1, 32, 3, 2, type=type)
+    conv4 = _conv_layer(convt2, 3, 9, 1, type=type)
 
     #TODO：最后一个卷积层的输出再经过 tanh 函数处理，最后的输出张量 preds 像素值需限定在 [0,255] 范围内
-    preds = ___________________
+    preds = (tf.nn.tanh(conv4)+1)/2*255
     return preds
 
 def _conv_layer(net, num_filters, filter_size, strides, relu=True, type=0):
@@ -18,13 +27,20 @@ def _conv_layer(net, num_filters, filter_size, strides, relu=True, type=0):
     # 寸，strides 表示卷积步长，该函数最后返回卷积层计算的结果
 
     # TODO：准备好权重的初值
-    weights_init = ___________________
+    weights_init = _conv_init_vars(net, num_filters, filter_size)
+
+    print()
+    print("_conv_layer: weights_shape: ", weights_init.get_shape())
+    print("_conv_layer: input net shape: ", net.get_shape())
 
     # TODO：输入的 strides 参数为标量，需将其处理成卷积函数能够使用的数据形式
-    strides_shape = ___________________
+    # strides: An int or list of `ints` that has length `1`, `2` or `4`.
+    # strides_shape = [1, strides, strides, 1]
+    strides_shape = strides
 
     # TODO：进行卷积计算
-    net = ___________________
+    # if padding == 'SAME': output_size = input_size / strides
+    net = tf.nn.conv2d(net, weights_init, strides_shape, padding='SAME')
 
     # 对卷积计算结果进行批归一化处理
     if type == 0:
@@ -34,20 +50,25 @@ def _conv_layer(net, num_filters, filter_size, strides, relu=True, type=0):
 
     if relu:
         # TODO：对归一化结果进行 ReLU 操作
-        net = ___________________
+        net = tf.nn.relu(net)
 
+    print("_conv_layer: output net shape: ", net.get_shape())
     return net
 
 def _conv_tranpose_layer(net, num_filters, filter_size, strides, type=0):
     # TODO：准备好权重的初值
-    weights_init = ___________________
-    ___________________
+    weights_init = _conv_init_vars(net, num_filters, filter_size, transpose=True)
+
 
     # TODO：输入的 num_filters、strides 参数为标量，需将其处理成转置卷积函数能够使用的数据形式
-    ___________________
+    batch_size, rows, cols, in_channels = [i.value for i in net.get_shape()]
+    new_rows, new_cols = int(rows * strides), int(cols * strides)
+    new_shape = [batch_size, new_rows, new_cols, num_filters]
+    tf_shape = tf.stack(new_shape)
+    strides_shape = [1,strides,strides,1]
 
     # TODO：进行转置卷积计算
-    net = ___________________
+    net = tf.nn.conv2d_transpose(net, weights_init, tf_shape, strides_shape, padding='SAME')
     
     # 对卷积计算结果进行批归一化处理
     if type == 0:
@@ -56,14 +77,18 @@ def _conv_tranpose_layer(net, num_filters, filter_size, strides, type=0):
         net = _instance_norm(net)
     
     # TODO：对归一化结果进行 ReLU 操作
-    ___________________
+    net = tf.nn.relu(net)
 
     return net
 
 def _residual_block(net, filter_size=3, type=0):
     # TODO：调用之前实现的卷积层函数，实现残差块的计算
-    ___________________
-    return net
+    print('\nresidual block 0 size: ' +  str(net.shape))
+    conv_res_1 = _conv_layer(net, 128, filter_size, 1, relu=True, type=type)
+    print('residual block 1 size: ' +  str(conv_res_1.shape))
+    conv_res_2 = _conv_layer(conv_res_1, 128, filter_size, 1, relu=True, type=type)
+    print('residual block 2 size: ' +  str(conv_res_2.shape))
+    return conv_res_2 + net
 
 def _batch_norm(net, train=True):
     batch, rows, cols, channels = [i.value for i in net.get_shape()]
@@ -86,7 +111,7 @@ def _instance_norm(net, train=True):
     return scale * normalized + shift
 
 def _conv_init_vars(net, out_channels, filter_size, transpose=False):
-    _, rows, cols, in_channels = [i.value for i in net.get_shape()]
+    _, rows, cols, in_channels = [i.value for i in net.get_shape()] 
     if not transpose:
         weights_shape = [filter_size, filter_size, in_channels, out_channels]
     else:

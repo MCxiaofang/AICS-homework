@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import print_function
 import functools
 import vgg, pdb, time
@@ -15,37 +16,43 @@ def loss_function(net, content_features, style_features, content_weight, style_w
     # 损失函数构建，net 为特征提取网络，content_features 为内容图像特征，style_features 为风格图像特征，content_weight、
     # style_weight 和 tv_weight 分别为特征重建损失、风格重建损失的权重和全变分正则化损失的权重
 
-    batch_shape = (batch_size,256,256,3)
-
     # 计算内容损失
     # content_loss
+    # content_size = C * H * W * N(batch_size)
     content_size = _tensor_size(content_features[CONTENT_LAYER])*batch_size
     assert _tensor_size(content_features[CONTENT_LAYER]) == _tensor_size(net[CONTENT_LAYER])
-    content_loss = ___________________
+    # TODO: 计算 content_loss
+    # tf.nn.l2_loss():      output = sum(t ** 2) / 2
+    content_loss = content_weight * (2 * tf.nn.l2_loss(net[CONTENT_LAYER] - content_features[CONTENT_LAYER]) / content_size)
 
     # 计算风格损失
     # style_loss
     style_losses = []
     for style_layer in STYLE_LAYERS:
+        # 计算生成图片的风格损失的gram范数
         layer = net[style_layer]
         bs, height, width, filters = map(lambda i:i.value,layer.get_shape())
         size = height * width * filters
         feats = tf.reshape(layer, (bs, height * width, filters))
         feats_T = tf.transpose(feats, perm=[0,2,1])
         grams = tf.matmul(feats_T, feats) / size
+        # 计算风格图片的风格损失的gram范数(已经在optimize()中计算了gram范数)
         style_gram = style_features[style_layer]
         # TODO: 计算 style_losses
-        ___________________
+        style_losses.append(2 * tf.nn.l2_loss(grams - style_gram)/style_gram.size)
     style_loss = style_weight * functools.reduce(tf.add, style_losses) / batch_size
 
     # 使用全变分正则化方法定义损失函数 tv_loss
     # tv_loss
+    # preds: 图像生成网络生成图片的数据
     tv_y_size = _tensor_size(preds[:,1:,:,:])
     tv_x_size = _tensor_size(preds[:,:,1:,:])
     # TODO：将图像 preds 向水平和垂直方向各平移一个像素，分别与原图相减，分别计算二者的 𝐿2 范数 x_tv 和 y_tv
     # Hint: use tf.nn.l2_loss
-    y_tv = ___________________
-    x_tv = ___________________
+    batch_shape = (batch_size,256,256,3)
+    # H(1-256) - H(0-255) 相当于图片上移一个像素，W(1-256) - W(0-255) 相当于图片左移一个像素
+    y_tv = tf.nn.l2_loss(preds[:,1:,:,:] - preds[:,:batch_shape[1]-1,:,:])
+    x_tv = tf.nn.l2_loss(preds[:,:,1:,:] - preds[:,:,:batch_shape[2]-1,:])
     tv_loss = tv_weight*2*(x_tv/tv_x_size + y_tv/tv_y_size)/batch_size
 
     loss = content_loss + style_loss + tv_loss
@@ -72,27 +79,28 @@ def optimize(content_targets, style_target, content_weight, style_weight,
 
     batch_shape = (batch_size,256,256,3)
     style_shape = (1,) + style_target.shape
-    print(style_shape)
 
     # precompute style features
     with tf.Graph().as_default(), tf.device('/cpu:0'), tf.Session() as sess:
         # 使用 numpy 库在 CPU 上处理
         # TODO：使用占位符来定义风格图像 style_image
-        style_image = ___________________
+        style_image = tf.placeholder(tf.float32, shape=style_shape, name='style_image')
 
         #TODO: 依次调用 vgg.py 文件中的 preprocess()、net() 函数对风格图像进行预处理，并将此时得到的特征提取网络传递给 net
-        ___________________
+        style_image_pre = vgg.preprocess(style_image)
+        style_net = vgg.net(vgg_path, style_image_pre)
 
         # 使用 numpy 库对风格图像进行预处理，定义风格图像的格拉姆矩阵
         style_pre = np.array([style_target])
         for layer in STYLE_LAYERS:
-            features = net[layer].eval(feed_dict={style_image:style_pre})
+            features = style_net[layer].eval(feed_dict={style_image:style_pre})
             features = np.reshape(features, (-1, features.shape[3]))
             gram = np.matmul(features.T, features) / features.size
             style_features[layer] = gram
 
         #TODO：先使用占位符来定义内容图像 X_content，再调用 preprocess() 函数对 X_content 进行预处理，生成 X_pre
-        ___________________
+        X_content = tf.placeholder(tf.float32, shape=batch_shape, name="X_content")
+        X_pre = vgg.preprocess(X_content)
 
         # 提取内容特征对应的网络层
         # precompute content features
@@ -107,19 +115,21 @@ def optimize(content_targets, style_target, content_weight, style_weight,
             preds_pre = preds
         else:
             # TODO: 内容图像经过图像转换网络后输出结果 preds，并调用 preprocess() 函数对 preds 进行预处理, 生成 preds_pre
-            ___________________
+            preds = transform.net(X_content/255.0)      # 图像转换网络的输入，需要将图像像素值归一化到 [0,1]
+            preds_pre = vgg.preprocess(preds)
+    
 
         # TODO：preds_pre 输入到特征提取网络，并将此时得到的特征提取网络传递给 net
-        net = ___________________
+        net = vgg.net(vgg_path, preds_pre)
 
         # TODO：计算内容损失 content_loss, 风格损失 style_loss, 全变分正则化项 tv_loss, 损失函数 loss
-        content_loss, style_loss, tv_loss, loss = ___________________
+        content_loss, style_loss, tv_loss, loss = loss_function(net, content_features, style_features, content_weight, style_weight, tv_weight, preds, batch_size)
 
         # TODO：创建 Adam 优化器，并定义模型训练方法为最小化损失函数方法，返回 train_step
-        ___________________
+        train_step = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
         # TODO：初始化所有变量
-        ___________________
+        sess.run(tf.global_variables_initializer())
 
         import random
         uid = random.randint(1, 100)
@@ -167,11 +177,17 @@ def optimize(content_targets, style_target, content_weight, style_weight,
                         _preds = vgg.unprocess(_preds)
                     elif save:
                         # TODO：将模型参数保存到 save_path，并将训练的次数 save_id 作为后缀加入到模型名字中
-                        ___________________
+                        saver = tf.train.Saver()
+                        saver.save(sess, save_path)
                     # 将相关计算结果返回
+                    print("_preds shape: ", _preds.shape)
                     yield(_preds, losses, iterations, epoch)
 
 def _tensor_size(tensor):
     # 对张量进行切片操作，将 NHWC 格式的张量，切片成 HWC，再计算 H、W、C 的乘积
     from operator import mul
+    # reduce(function, iterable[, initializer]), 将iterable内容依次进行function操作
+    # function -- 函数，有两个参数
+    # iterable -- 可迭代对象
+    # initializer -- 可选，初始参数
     return functools.reduce(mul, (d.value for d in tensor.get_shape()[1:]), 1)
