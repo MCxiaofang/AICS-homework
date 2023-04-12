@@ -1,3 +1,4 @@
+# coding=utf-8
 import argparse
 import tensorflow as tf
 from tensorflow.core.framework import graph_pb2
