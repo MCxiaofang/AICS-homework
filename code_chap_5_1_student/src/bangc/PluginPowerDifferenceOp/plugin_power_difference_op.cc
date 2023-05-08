@@ -34,9 +34,14 @@ typedef half DType;
 cnmlStatus_t cnmlCreatePluginPowerDifferenceOpParam(
   cnmlPluginPowerDifferenceOpParam_t *param,
   // TODO：添加变量
+  int power,
+  int len,
+  cnmlCoreVersion_t core_version
 ) {
   *param = new cnmlPluginPowerDifferenceOpParam();
   // TODO：配置变量
+  (*param)->power = power;
+  (*param)->len = len;
 
   return CNML_STATUS_SUCCESS;
 }
@@ -53,14 +58,31 @@ cnmlStatus_t cnmlDestroyPluginPowerDifferenceOpParam(
 cnmlStatus_t cnmlCreatePluginPowerDifferenceOp(
   cnmlBaseOp_t *op,
   // TODO：添加变量
+  cnmlTensor_t *input_tensors,
+  int power,
+  cnmlTensor_t *output_tensors,
+  int len
 ) {
   cnrtKernelParamsBuffer_t params;
   cnrtGetKernelParamsBuffer(&params);
   // TODO：配置变量
-  ...
+  void** InterfacePtr;
+  InterfacePtr = reinterpret_cast<void**>(&PowerDifferenceKernel);
+  cnrtKernelParamsBufferMarkInput(params);
+  cnrtKernelParamsBufferMarkInput(params);
+  cnrtKernelParamsBufferAddParam(params, &power, sizeof(int));
+  cnrtKernelParamsBufferMarkOutput(params);
+  cnrtKernelParamsBufferAddParam(params, &len, sizeof(int));
   cnmlCreatePluginOp(op,
                      "PowerDifference",
-                     ...);
+                     InterfacePtr,
+                     params,
+                     input_tensors,
+                     2,
+                     output_tensors,
+                     1,
+                     nullptr,
+                     0);
   cnrtDestroyKernelParamsBuffer(params);
   return CNML_STATUS_SUCCESS;
 }
@@ -68,11 +90,21 @@ cnmlStatus_t cnmlCreatePluginPowerDifferenceOp(
 cnmlStatus_t cnmlComputePluginPowerDifferenceOpForward(
   cnmlBaseOp_t op,
   // TODO：添加变量
+  void **inputs,
+  void **outputs,
+
   cnrtQueue_t queue
 ) {
   // TODO：完成Compute函数
   cnmlComputePluginOpForward_V4(op,
-                                ...);
+                                nullptr,
+                                inputs,
+                                2,
+                                nullptr,
+                                outputs,
+                                1,
+                                queue,
+                                nullptr);
   return CNML_STATUS_SUCCESS;
 }
 

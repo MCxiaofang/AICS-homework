@@ -1,3 +1,4 @@
+# coding=utf-8
 import numpy as np
 import os
 import time
@@ -9,12 +10,15 @@ from power_diff_numpy import *
 def power_difference_op(input_x,input_y,input_pow):
     with tf.Session() as sess:
       # TODO：完成TensorFlow接口调用
-      out = tf.power_difference()
-      return sess.run(z, feed_dict = {...})
+      placeholder_x = tf.placeholder(tf.float32, name='placeholder_x')
+      placeholder_y = tf.placeholder(tf.float32, name='placeholder_y')
+      placeholder_z = tf.placeholder(tf.float32, name='placeholder_z')
+      out = tf.power_difference(placeholder_x, placeholder_y, placeholder_z)
+      return sess.run(out, feed_dict = {placeholder_x:input_x, placeholder_y:input_y, placeholder_z:input_pow})
 
 def main():
     value = 256
-    input_x = np.random.randn(1,value,value,3)
+    input_x = np.random.randn(1,value,value,3) 
     input_y = np.random.randn(1,1,1,3)
     input_pow = np.zeros((2))
 
