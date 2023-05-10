@@ -29,3 +29,7 @@
    bash build_tensorflow-v1.10_mlu.sh -j 20
    ``` 
   
+## exp5的一些大坑
+希冀平台的提交就很玄学，不小心把5-1的结果提交进了5-2，5-2都能满分通过。
+1. 提交5-1实验时，可以不提交重新编译的tensorflow（tensorflow_mlu-1.14.0-cp27-cp27mu-linux_x86_64.whl）
+2. 提交5-3实验时，需要提交tensorflow_mlu-1.14.0-cp27-cp27mu-linux_x86_64.whl才能通过（我当时是这样）
