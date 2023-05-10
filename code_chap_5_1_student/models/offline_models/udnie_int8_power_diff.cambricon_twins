@@ -1,0 +1,33 @@
+This is the Twins File of "../../models/offline_models/udnie_int8_power_diff.cambricon".
+Function number: 1
+---------------kernel graph--------------------
+
+Function #0 {
+Kernel num:1 
+Cache mode:0 
+Name: subnet0
+Input number: 1
+    Input #0.
+        Mask: 338036233
+        Shape(dim): 1 256 256 3 
+        Name: 
+        Id: 469
+        Data type: CNRT_FLOAT16        Dim Order: CNRT_NHWC
+        Quantize position: 0
+        Quantize scale: 36894015913000435712.000000
+Output number: 1
+    Output #0.
+        Mask: 338036233
+        Shape(dim): 1 256 256 3 
+        Name: 
+        Id: 813
+        Data type: CNRT_FLOAT16        Dim Order: CNRT_NHWC
+        Quantize position: 0
+        Quantize scale: 36894015913000435712.000000
+Kernel header #0:
+    Name: subnet02
+    Core version: 
+    Model Parallelism: 1
+    Core limit: 1
+    Inst data split: true
+}
